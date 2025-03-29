@@ -16,17 +16,17 @@ os.makedirs(output_dir, exist_ok=True)
 # ------------------------------
 # Read CSV Files (all comma-separated)
 # ------------------------------
-# Financial information file (includes an 'id' column)
+# Load financial information, ensuring 'start_date' and 'end_date' are parsed as datetime
 financial_df = pd.read_csv("finanical_information.csv", parse_dates=["start_date", "end_date"])
 
-# Industry client details
+# Load industry client details
 industry_df = pd.read_csv("industry_client_details.csv")
 
-# Payment information (convert payment_date to datetime)
+# Load payment information and convert 'payment_date' to datetime format
 payment_df = pd.read_csv("payment_information.csv")
 payment_df["payment_date"] = pd.to_datetime(payment_df["payment_date"], format="%m/%d/%Y")
 
-# Subscription information (convert dates to datetime and convert renewed to boolean)
+# Load subscription information, convert dates to datetime, and convert 'renewed' to boolean
 subscription_df = pd.read_csv("subscription_information.csv")
 subscription_df["start_date"] = pd.to_datetime(subscription_df["start_date"])
 subscription_df["end_date"] = pd.to_datetime(subscription_df["end_date"])
@@ -35,6 +35,7 @@ subscription_df["renewed"] = subscription_df["renewed"].astype(str).str.upper() 
 # ------------------------------
 # Question 1: Count Finance Lending and Block Chain Clients
 # ------------------------------
+# Filter clients belonging to the specified industries
 industries_of_interest = ["Finance Lending", "Block Chain"]
 filtered_clients = industry_df[industry_df["industry"].isin(industries_of_interest)]
 industry_counts = filtered_clients["industry"].value_counts()
@@ -42,9 +43,9 @@ industry_counts = filtered_clients["industry"].value_counts()
 print("Question 1: Number of clients by industry (Finance Lending and Block Chain):")
 print(industry_counts)
 
-# Beautified Bar Plot for Q1 using Seaborn
+# Create a bar plot for industry client counts
 plt.figure()
-sns.barplot(x=industry_counts.index, y=industry_counts.values,width=0.5, palette=["#69b3a2", "#e76f51"])
+sns.barplot(x=industry_counts.index, y=industry_counts.values, width=0.5, palette=["#69b3a2", "#e76f51"])
 plt.title("Count of Finance Lending and Block Chain Clients", fontsize=18, weight="bold")
 plt.xlabel("Industry", fontsize=14)
 plt.ylabel("Number of Clients", fontsize=14)
@@ -56,22 +57,24 @@ plt.show()
 plt.close()
 
 # ------------------------------
-# Question 2: Which Industry has the Highest Renewal Rate?
+# Question 2: Industry with the Highest Renewal Rate
 # ------------------------------
-# Merge subscription information with industry details on client_id
+# Merge subscription data with industry details on 'client_id'
 merged_subscriptions = pd.merge(subscription_df, industry_df, on="client_id", how="inner")
 
+# If no matching clients found, print an appropriate message
 if merged_subscriptions.empty:
-    print("\nQuestion 2: No overlapping client IDs found between subscription and industry details. " 
+    print("\nQuestion 2: No overlapping client IDs found between subscription and industry details. "
           "Cannot compute renewal rates by industry from the provided data.")
 else:
+    # Compute renewal statistics for each industry
     renewal_stats = merged_subscriptions.groupby("industry")["renewed"].agg(total="count", renewed_sum="sum")
     renewal_stats["renewal_rate"] = renewal_stats["renewed_sum"] / renewal_stats["total"]
     highest_industry = renewal_stats["renewal_rate"].idxmax()
     print("\nQuestion 2: Industry with the highest renewal rate:")
     print(f"{highest_industry} with a renewal rate of {renewal_stats.loc[highest_industry, 'renewal_rate']:.2f}")
     
-    # Beautified Bar Plot for Q2 using Seaborn
+    # Create a bar plot for renewal rates by industry
     plt.figure()
     sns.barplot(x=renewal_stats.index, y=renewal_stats["renewal_rate"], palette="viridis")
     plt.title("Renewal Rate by Industry", fontsize=18, weight="bold")
@@ -88,8 +91,7 @@ else:
 # ------------------------------
 # Question 3: Average Inflation Rate when Subscriptions were Renewed
 # ------------------------------
-# Use the end_date of renewed subscriptions to find corresponding inflation rates
-renewed_subscriptions = subscription_df[subscription_df["renewed"]]
+# Function to get inflation rate for a given date
 
 def get_inflation_for_date(date, fin_df):
     match = fin_df[(fin_df["start_date"] <= date) & (fin_df["end_date"] >= date)]
@@ -98,11 +100,16 @@ def get_inflation_for_date(date, fin_df):
     else:
         return np.nan
 
+# Apply function to find the inflation rate for renewed subscriptions
+renewed_subscriptions = subscription_df[subscription_df["renewed"]]
 renewed_subscriptions["inflation_rate"] = renewed_subscriptions["end_date"].apply(
     lambda d: get_inflation_for_date(d, financial_df)
 )
+
+# Compute average inflation rate
 avg_inflation = renewed_subscriptions["inflation_rate"].mean()
 
+# If no matching data found, print appropriate message
 if np.isnan(avg_inflation):
     print("\nQuestion 3: No matching financial information periods found for the renewed subscription dates. "
           "Cannot compute average inflation rate from the provided data.")
@@ -113,13 +120,16 @@ else:
 # ------------------------------
 # Question 4: Median Amount Paid Each Year for All Payment Methods
 # ------------------------------
+# Extract year from payment_date
 payment_df["year"] = payment_df["payment_date"].dt.year
+
+# Compute median amount paid per year
 median_paid = payment_df.groupby("year")["amount_paid"].median()
 
 print("\nQuestion 4: Median amount paid each year:")
 print(median_paid)
 
-# Beautified Bar Plot for Q4 using Seaborn
+# Create a bar plot for median payments per year
 plt.figure()
 sns.barplot(x=median_paid.index.astype(str), y=median_paid.values, palette="mako")
 plt.title("Median Amount Paid per Year", fontsize=18, weight="bold")
