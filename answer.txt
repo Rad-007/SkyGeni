@@ -1,0 +1,19 @@
+Question 1: Number of clients by industry (Finance Lending and Block Chain):
+industry
+Block Chain        25
+Finance Lending    22
+
+Question 2: Industry with the highest renewal rate:
+Gaming with a renewal rate of 0.73
+
+Question 3: Average inflation rate for renewed subscriptions:
+4.3118
+
+
+Question 4: Median amount paid each year:
+year
+2018    235.7
+2019    360.9
+2020    284.5
+2021    306.8
+2022    288.0
